@@ -1,92 +1,91 @@
-import React, { useState, useEffect, useRef } from "react";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minimalist Snake</title>
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: white;
+      font-family: sans-serif;
+    }
+    canvas {
+      background: #111;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" width="400" height="400"></canvas>
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const scale = 20;
+    const rows = canvas.height / scale;
+    const cols = canvas.width / scale;
 
-const GRID_SIZE = 20;
-const INITIAL_SNAKE = [{ x: 10, y: 10 }];
-const INITIAL_DIRECTION = { x: 1, y: 0 };
+    let snake = [{ x: 10, y: 10 }];
+    let direction = { x: 1, y: 0 };
+    let food = randomFood();
+    let gameOver = false;
 
-export default function SnakeGame() {
-  const [snake, setSnake] = useState(INITIAL_SNAKE);
-  const [food, setFood] = useState(generateFood);
-  const [direction, setDirection] = useState(INITIAL_DIRECTION);
-  const [isGameOver, setIsGameOver] = useState(false);
-  const boardRef = useRef(null);
+    function randomFood() {
+      return {
+        x: Math.floor(Math.random() * cols),
+        y: Math.floor(Math.random() * rows)
+      };
+    }
 
-  function generateFood() {
-    return {
-      x: Math.floor(Math.random() * GRID_SIZE),
-      y: Math.floor(Math.random() * GRID_SIZE),
-    };
-  }
+    function draw() {
+      if (gameOver) return;
+      setTimeout(() => {
+        requestAnimationFrame(draw);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      const dir = {
-        ArrowUp: { x: 0, y: -1 },
-        ArrowDown: { x: 0, y: 1 },
-        ArrowLeft: { x: -1, y: 0 },
-        ArrowRight: { x: 1, y: 0 },
-      }[e.key];
-      if (dir) setDirection(dir);
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+        // Move snake
+        const head = { x: (snake[0].x + direction.x + cols) % cols, y: (snake[0].y + direction.y + rows) % rows };
 
-  useEffect(() => {
-    if (isGameOver) return;
-    const interval = setInterval(() => {
-      setSnake((prev) => {
-        const newHead = {
-          x: (prev[0].x + direction.x + GRID_SIZE) % GRID_SIZE,
-          y: (prev[0].y + direction.y + GRID_SIZE) % GRID_SIZE,
-        };
-
-        const collision = prev.some(segment => segment.x === newHead.x && segment.y === newHead.y);
-        if (collision) {
-          setIsGameOver(true);
-          return prev;
+        // Check collision
+        if (snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+          gameOver = true;
+          alert('Game Over');
+          return;
         }
 
-        const newSnake = [newHead, ...prev];
-        if (newHead.x === food.x && newHead.y === food.y) {
-          setFood(generateFood());
+        snake.unshift(head);
+        if (head.x === food.x && head.y === food.y) {
+          food = randomFood();
         } else {
-          newSnake.pop();
+          snake.pop();
         }
-        return newSnake;
-      });
-    }, 150);
-    return () => clearInterval(interval);
-  }, [direction, food, isGameOver]);
 
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white">
-      <h1 className="text-2xl mb-4">Minimalist Snake</h1>
-      {isGameOver && <div className="mb-2 text-red-500">Game Over</div>}
-      <div
-        ref={boardRef}
-        className="grid"
-        style={{
-          gridTemplateColumns: `repeat(${GRID_SIZE}, 20px)`,
-          gridTemplateRows: `repeat(${GRID_SIZE}, 20px)`,
-          gap: "1px",
-        }}
-      >
-        {Array.from({ length: GRID_SIZE * GRID_SIZE }).map((_, i) => {
-          const x = i % GRID_SIZE;
-          const y = Math.floor(i / GRID_SIZE);
-          const isSnake = snake.some((s) => s.x === x && s.y === y);
-          const isFood = food.x === x && food.y === y;
-          return (
-            <div
-              key={i}
-              className={`w-5 h-5 ${
-                isSnake ? "bg-green-500" : isFood ? "bg-red-500" : "bg-gray-800"
-              }`}
-            ></div>
-          );
-        })}
-      </div>
-    </div>
-  );
-} 
+        // Draw food
+        ctx.fillStyle = 'red';
+        ctx.fillRect(food.x * scale, food.y * scale, scale, scale);
+
+        // Draw snake
+        ctx.fillStyle = 'lime';
+        for (let s of snake) {
+          ctx.fillRect(s.x * scale, s.y * scale, scale, scale);
+        }
+      }, 100);
+    }
+
+    window.addEventListener('keydown', e => {
+      switch (e.key) {
+        case 'ArrowUp': if (direction.y === 0) direction = { x: 0, y: -1 }; break;
+        case 'ArrowDown': if (direction.y === 0) direction = { x: 0, y: 1 }; break;
+        case 'ArrowLeft': if (direction.x === 0) direction = { x: -1, y: 0 }; break;
+        case 'ArrowRight': if (direction.x === 0) direction = { x: 1, y: 0 }; break;
+      }
+    });
+
+    draw();
+  </script>
+</body>
+</html>
